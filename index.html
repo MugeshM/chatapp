@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head><title>ChatApp</title>
+<script src="public/js/jquery.min.js"></script>
+<script type="text/javascript" src="public/bootstrap/bootstrap.min.js"></script>
+<link rel="stylesheet" href="public/bootstrap/bootstrap.min.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+#left{float:left;width:80%;word-wrap: break-word;}
+#right{float:right;width:80%;word-wrap: break-word;}
+
+.abubble{
+    background-color: #F2F2F2;
+    border-radius: 5px;
+    box-shadow: 0 0 6px #B2B2B2;
+    display: inline-block;
+   padding-left: 20px;
+    position: relative;
+    vertical-align: top;
+}
+.bbubble{
+    background-color: #F2F2F2;
+    border-radius: 5px;
+    box-shadow: 0 0 6px #B2B2B2;
+    display: inline-block;
+   padding-left: 20px;
+    position: relative;
+    vertical-align: top;
+}
+.abubble::before {
+    background-color: orange;
+    content: "\00a0";
+    display: block;
+    height: 16px;
+    position: absolute;
+    top: 3px;
+    transform:             rotate( 29deg ) skew( -35deg );
+        -moz-transform:    rotate( 29deg ) skew( -35deg );
+        -ms-transform:     rotate( 29deg ) skew( -35deg );
+        -o-transform:      rotate( 29deg ) skew( -35deg );
+        -webkit-transform: rotate( 29deg ) skew( -35deg );
+    width:  10px;
+
+}
+
+.bbubble::before {
+    background-color:lightgreen;
+    content: "\00a0";
+    display: block;
+    height: 16px;
+    position: absolute;
+    top: 3px;
+    transform:             rotate( 29deg ) skew( -35deg );
+        -moz-transform:    rotate( 29deg ) skew( -35deg );
+        -ms-transform:     rotate( 29deg ) skew( -35deg );
+        -o-transform:      rotate( 29deg ) skew( -35deg );
+        -webkit-transform: rotate( 29deg ) skew( -35deg );
+    width:  10px;
+
+}
+#left::before {
+    box-shadow: -2px 2px 2px 0 rgba( 178, 178, 178, .4 );
+    left: -2px;           
+}
+#right::before {
+    box-shadow: 2px -2px 2px 0 rgba( 178, 178, 178, .4 );
+    right: -2px;
+}
+</style>
+</head>
+<body style="background-color:#674286;">
+<div class="container">
+
+
+<div id="namediv" style="background-color:white;width:500px;height:200px;margin-left:200px;padding-top:20px; margin-top:200px;padding-left:30px;">
+		<p>Enter your name to begin the chat:</p>
+		<p id="Error" style="color:red;"></p>
+		<form id="userform" class="form-inline" >
+			<input class="form-control" size="35" style="width:400px;" id="uname"></input>
+			<input class="form-control" type="submit" value="Submit" style="margin-top:15px;"></input>
+		</form>
+</div>
+
+<div class="row" id="chatwindow" style="margin-top:40px;display:none" >
+<div class="col-md-1"></div>
+<div style="height:450px;background-color:white;overflow:auto;" class="col-xs-8 col-md-6"><span style="color:red;font-size:25px;font-weight:bold;" id="spanname">A</span><div id="aresult"><ul id="msglist"></ul>
+</div></div>
+</div>
+
+<div id="chatbutton" style="display:none">
+<div class="row" style="margin-top:20px;"><div class="col-md-1"></div>
+  <div class="col-xs-6 col-md-4">
+    <div class="input-group">
+      <span class="input-group-btn">
+        <button class="btn btn-default" id="asender" type="button">Send!</button>
+      </span>
+      <input type="text" class="form-control" id="amsg" placeholder="Type your message">
+    </div><!-- /input-group -->
+  </div><!-- /.col-lg-6 -->
+<div class="col-md-2 col-xs-2">
+<button id="delete" class="btn btn-default"  type="button">Quit!</button>
+</div>
+</div><!-- /.row -->
+</div>
+
+
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+jQuery(function($){
+var socket=io.connect();
+
+$("#userform").submit(function(e){
+	//alert("hello");
+				e.preventDefault();
+				if($("#uname").val()!=""){
+	socket.emit('new user', $("#uname").val(), function(data){
+			if(data){
+				$('#namediv').hide();
+				$('#chatwindow').show();
+				$('#chatbutton').show();
+				$("#spanname").html($("#uname").val());
+				
+		}else{
+$("#Error").html('That username is already in use!  Try again.');
+		}
+	});
+}else{$("#Error").html('Please Enter you name');
+ }
+});
+
+$("#asender").click(function(e){ 
+        //alert("hello");
+				e.preventDefault();
+				socket.emit('send message', $("#amsg").val(), function(data){
+					$("#msglist").append('<span style="color:red;" class="error">' + data + "</span><br/>");
+				});
+				$("#amsg").val('');
+			});
+			
+			socket.on('new message', function(data){
+				if(data.name==$("#spanname").html()){
+				$("#msglist").append('<span style="background-color:orange;font-size:16px;" class="msg abubble" id="left"><b>' + data.name + ': </b>' + data.msg + "</span><br/><br/>");
+			}
+			else{
+
+				$("#msglist").append('<span style="background-color:lightgreen;font-size:16px;" class="msg bbubble" id="right"><b>' + data.name + ': </b>' + data.msg + "</span><br/><br/>");
+			}
+			});
+
+socket.on('load old msgs', function(docs){
+				for(var i=docs.length-1; i >= 0; i--){
+					displayMsg(docs[i]);
+				}
+			});
+
+
+function displayMsg(data){
+	//alert($("#uname").val()+""+data.name);
+	if(data.name==$("#uname").val()){
+				$("#msglist").append('<span style="background-color:orange;font-size:16px;" class="msg abubble" id="left"><b>' + data.name + ': </b>' + data.msg + "</span><br/>");
+				}else{
+$("#msglist").append('<span style="background-color:lightgreen;font-size:16px;" class="msg bbubble" id="right"><b>' + data.name + ': </b>' + data.msg + "</span><br/>");
+}
+			}
+
+
+$("#delete").click(function() {
+     var c=confirm("Do you really want to Quit??");
+    if(c){
+    location.reload();
+}   });
+
+});
+
+</script>
+</body>
+</html>
